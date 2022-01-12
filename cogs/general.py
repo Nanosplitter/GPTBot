@@ -7,8 +7,8 @@ import discord
 import yaml
 from discord.ext import commands
 from discord.ext import tasks
-from noncommands.NN import NN
-import language_tool_python
+import torch
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 if not os.path.isfile("config.yaml"):
     sys.exit("'config.yaml' not found! Please add it and try again.")
@@ -20,8 +20,8 @@ else:
 class general(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
-        self.NN = NN("./resources/bdk_v2.h5")
-        self.languageTool = language_tool_python.LanguageTool('en-US')
+        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.model = GPT2LMHeadModel.from_pretrained('gpt2')
 
     @commands.command(name="info", aliases=["botinfo"])
     async def info(self, context):
@@ -29,7 +29,7 @@ class general(commands.Cog, name="general"):
         Get some useful (or not) information about the bot.
         """
         embed = discord.Embed(
-            description="😋",
+            description="GPT but in Discord",
             color=config["success"]
         )
         embed.set_author(
@@ -119,14 +119,16 @@ class general(commands.Cog, name="general"):
         )
         await context.send(embed=embed)
     
-    @commands.command(name="bdk")
-    async def bdk(self, context, *seed):
+    @commands.command(name="gpt")
+    async def gpt(self, context, *seed):
         """
-        New message based on seed (Uses the last 15 chars)
+        New message based on seed
         """
-        await context.message.add_reaction("😋")
-        reply = " ".join(seed) + self.NN.getResponse(" ".join(seed).lower())
-        await context.reply(reply)
+        await context.message.add_reaction("👍")
+        inputs = self.tokenizer.encode(" ".join(seed), return_tensors='pt')
+        outputs = self.model.generate(inputs, max_length=200, do_sample=True)
+        text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        await context.reply("```" + text + "```")
 
 def setup(bot):
     bot.add_cog(general(bot))
