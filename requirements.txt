@@ -1,0 +1,5 @@
+discord
+tensorflow
+keras
+numpy
+language_tool_python
